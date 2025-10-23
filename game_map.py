@@ -38,7 +38,7 @@ class GameMap:
             
         return None
 
-    def in_bounds(self, x:int, y:int) -> bool:
+    def in_bounds(self, x, y) -> bool:
         return 0 <= x < self.width and 0 <= y < self.height
     
     def render(self,console:Console) -> None:
