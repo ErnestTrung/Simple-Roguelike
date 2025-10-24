@@ -1,9 +1,10 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING, Optional, Tuple
 import color
+import exceptions
 if TYPE_CHECKING:
     from engine import Engine
-    from entity import Entity, Actor
+    from entity import Entity, Actor, Item
 
 class Action:
     def __init__(self, entity:Actor) -> None:
@@ -17,10 +18,52 @@ class Action:
     
     def perform(self) -> None:
         raise NotImplementedError()
+    
+class PickUpAction(Action):
+    """Pickup and item and add it to inventory, if there is space for it."""
+    def __init__(self,entity:Actor):
+        super().__init__(entity)
 
-class EscapeAction(Action):
     def perform(self) -> None:
-        raise SystemExit()
+        actor_location_x, actor_location_y = self.entity.x, self.entity.y
+        inventory = self.entity.inventory
+
+        for item in self.engine.game_map.items:
+            if actor_location_x == item.x and actor_location_y == item.y:
+                if len(inventory.items) >= inventory.capacity:
+                    raise exceptions.Impossible("Your inventory is full.")
+                
+                self.engine.game_map.entities.remove(item)
+                item.parent = self.entity.inventory  # type: ignore[assignment]
+                inventory.items.append(item)
+
+                self.engine.message_log.add_message(f"You picked up the {item.name}!")
+                return
+            
+        raise exceptions.Impossible("There is nothing here to pickup.")
+    
+class ItemAction(Action):
+    def __init__(
+            self, entity: Actor, item:Item, target_xy:Optional[Tuple[int,int]]=None
+    ):
+        super().__init__(entity)
+        self.item = item
+        if not target_xy:
+            target_xy=entity.x,entity.y
+        self.target_xy = target_xy
+
+    @property
+    def target_actor(self) -> Optional[Actor]:
+        """Return the actor at this action's destination."""
+        return self.engine.game_map.get_actor_at_location(*self.target_xy)
+    
+    def perform(self) -> None:
+        """Invoke the items ability, this action will be given to provide context."""
+        self.item.consumable.activate(self) 
+    
+class DropItem(ItemAction):
+    def perform(self) -> None:
+        self.entity.inventory.drop(self.item)
     
 class WaitAction(Action):
     def perform(self) -> None:
@@ -56,11 +99,11 @@ class MovementAction(ActionWithDirection):
         dest_x, dest_y= self.dest_xy
 
         if not self.engine.game_map.in_bounds(dest_x,dest_y):
-            return # dest out of bounds
+            raise exceptions.Impossible("That way is blocked.") # dest out of bounds
         if not self.engine.game_map.tiles["walkable"][dest_x,dest_y]:
-            return # dest blocked
+            raise exceptions.Impossible("That way is blocked.") # dest blocked
         if self.engine.game_map.get_blocking_entity_at_location(dest_x, dest_y):
-            return # dest blocked by blocking entity
+            raise exceptions.Impossible("That way is blocked.") # dest blocked by blocking entity
         
         self.entity.move(self.dx, self.dy)
 
@@ -68,7 +111,7 @@ class MeleeAction(ActionWithDirection):
     def perform(self) -> None:
         target=self.target_actor
         if not target:
-            return #No entity to attack
+            raise exceptions.Impossible("Nothing to attack.") #No entity to attack
         
         damage = self.entity.fighter.power - target.fighter.defense
 
