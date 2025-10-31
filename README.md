@@ -9,3 +9,4 @@ Pick Up Item: G
 Log: V
 Exit: Esc
 Look Function: /, Exit: ENTER or ESC
+Descend: >

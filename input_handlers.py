@@ -1,6 +1,7 @@
 from __future__ import annotations
 import os
 from typing import Optional, TYPE_CHECKING, Callable, Tuple, Union
+from tcod.console import Console
 import tcod.event
 import tcod.constants
 import actions
@@ -92,7 +93,12 @@ class EventHandler(BaseEventHandler):
             #A valid action was performed.
             if not self.engine.player.is_alive:
                 #The player was killed sometime during or after the action.
+                self.engine.message_log.add_message(
+                    "Press R to Retry.", color.red
+                )
                 return GameOverEventHandler(self.engine)
+            elif self.engine.player.level.requires_level_up:
+                return LevelUpEventHandler(self.engine)
             return MainGameEventHandler(self.engine)
         return self
 
@@ -142,6 +148,69 @@ class AskUserEventHandler(EventHandler):
         """Called when the user is trying to exit or cancel an action.
         By default this returns to the main event handler."""
         return MainGameEventHandler(self.engine)
+    
+class LevelUpEventHandler(AskUserEventHandler):
+    TITLE = "Level Up"
+
+    def on_render(self, console: tcod.console.Console) -> None:
+        super().on_render(console)
+
+        if self.engine.player.x <= 30:
+            x=40
+        else:
+            x=0
+
+        console.draw_frame(x=x,y=0,
+                           width=35,
+                           height=8,
+                           title=self.TITLE,
+                           clear=True,
+                           fg=(255,255,255),
+                           bg=(0,0,0),
+                           )
+        
+        console.print(x=x+1, y=1, text="You leveled up!")
+        console.print(x=x+1, y=2, text="Select an attribute to increase.")
+
+        console.print(
+            x=x+1,
+            y=4,
+            text=f"a) Stamina (+15HP, from {self.engine.player.fighter.max_hp})"
+        )
+        console.print(
+            x=x+1,
+            y=5,
+            text=f"b) Strength (+1 Attack, from {self.engine.player.fighter.power})"
+        )
+        console.print(
+            x=x+1,
+            y=6,
+            text=f"c) Resilience (+1 Defense, from {self.engine.player.fighter.defense})"
+        )
+
+    def ev_keydown(self, event: tcod.event.KeyDown) -> Action | BaseEventHandler | None:
+        player = self.engine.player
+        key= event.sym
+        index = key - tcod.event.KeySym.A
+
+        if 0<=index<=2:
+            if index == 0:
+                player.level.increase_max_hp()
+            elif index == 1:
+                player.level.increase_power()
+            elif index == 2:
+                player.level.increase_defense()
+        else:
+            self.engine.message_log.add_message("Invalid entry.", color.invalid)
+
+            return None
+        return self.on_exit()
+    
+    def ev_mousebuttondown(self, event: tcod.event.MouseButtonDown) -> Action | BaseEventHandler | None:
+        """
+        Don't allow the player to click to exit the menu, like normal.
+        """
+        return None
     
 class InventoryEventHandler(AskUserEventHandler):
     """This handler lets the user select an item.
@@ -320,8 +389,14 @@ class MainGameEventHandler(EventHandler):
         action: Optional[Action] = None
 
         key = event.sym
+        modifier = event.mod
 
         player = self.engine.player
+
+        if key == tcod.event.KeySym.PERIOD and modifier & (
+            tcod.event.Modifier.LSHIFT | tcod.event.Modifier.RSHIFT
+        ):
+            return actions.TakeStairsAction(player)
 
         if key in MOVE_KEYS:
             dx, dy = MOVE_KEYS[key]
@@ -352,11 +427,15 @@ class GameOverEventHandler(EventHandler):
     def ev_quit(self, event:tcod.event.Quit) -> None:
         self.on_quit()
 
-    def ev_keydown(self, event: tcod.event.KeyDown) -> Optional[Action]:
+    def ev_keydown(self, event: tcod.event.KeyDown) -> Action | None | EventHandler:
+        from game_setup import new_game
         if event.sym == tcod.event.KeySym.ESCAPE:
             self.on_quit()
         if event.sym in MOVE_KEYS:
             self.engine.message_log.add_message("Dead men can't move.", color.impossible)
+        if event.sym == tcod.event.KeySym.R:
+            self.engine = new_game()
+            return MainGameEventHandler(self.engine)
     
 CURSOR_Y_KEYS= {
     tcod.event.KeySym.UP: -1,
