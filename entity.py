@@ -66,10 +66,10 @@ class Entity:
         self.y += dy
 
 class Actor(Entity):
-    def __init__(self, *, x:int=0, y:int=0, char:str="?"
-                 ,color:Tuple[int,int,int]=(255,255,255),
+    def __init__(self, *, x:int=0, y:int=0, char:str="?",
+                 color:Tuple[int,int,int]=(255,255,255),
                  name:str="<Unnamed>", ai_cls:Type[BaseAI],
-                 fighter:Fighter, inventory:Inventory, level:Level):
+                 fighter:Fighter, inventory:Inventory, level:Level,):
         super().__init__(x=x, y=y,char=char,color=color,
                          name=name,blocks_movement=True,
                          render_order=RenderOrder.ACTOR)

@@ -23,7 +23,7 @@ def main() -> None:
     with tcod.context.new(columns=screen_width,
                           rows=screen_height,
                           tileset=tileset,
-                          title="What Is This?",
+                          title="Les Catacombes",
                           vsync=True,) as context:
         root_console = tcod.console.Console(screen_width, screen_height, order="F")
         try:

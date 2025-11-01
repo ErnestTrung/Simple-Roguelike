@@ -21,16 +21,16 @@ orc = Actor(
     ai_cls=HostileEnemy,
     fighter=Fighter(hp=10, defense=0, power=3),
     inventory=Inventory(0),
-    level=Level(xp_given=35)
+    level=Level(xp_given=35),
 )
 troll = Actor(
     char="T",
     color=(0,127,0),
     name="Troll",
     ai_cls=HostileEnemy,
-    fighter=Fighter(hp=16, defense=1, power=4),
+    fighter=Fighter(hp=16, defense=1, power=4, scaling=(0.2,0.1,0.1)),
     inventory=Inventory(0),
-    level=Level(xp_given=70)
+    level=Level(xp_given=70),
 )
 health_potion = Item(
     char="+",
