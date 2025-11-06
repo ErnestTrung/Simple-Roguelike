@@ -175,31 +175,28 @@ class LevelUpEventHandler(AskUserEventHandler):
         console.print(
             x=x+1,
             y=4,
-            text=f"a) Stamina (+15HP, from {self.engine.player.fighter.max_hp})"
+            text=f"(1) Stamina (+15HP, from {self.engine.player.fighter.max_hp})"
         )
         console.print(
             x=x+1,
             y=5,
-            text=f"b) Strength (+1 Attack, from {self.engine.player.fighter.power})"
+            text=f"(2) Strength (+1 Attack, from {self.engine.player.fighter.power})"
         )
         console.print(
             x=x+1,
             y=6,
-            text=f"c) Resilience (+1 Defense, from {self.engine.player.fighter.defense})"
+            text=f"(3) Resilience (+1 Defense, from {self.engine.player.fighter.defense})"
         )
 
     def ev_keydown(self, event: tcod.event.KeyDown) -> Action | BaseEventHandler | None:
         player = self.engine.player
         key= event.sym
-        index = key - tcod.event.KeySym.A
-
-        if 0<=index<=2:
-            if index == 0:
-                player.level.increase_max_hp()
-            elif index == 1:
-                player.level.increase_power()
-            elif index == 2:
-                player.level.increase_defense()
+        if key == tcod.event.KeySym.N1:
+            player.level.increase_max_hp()
+        elif key == tcod.event.KeySym.N2:
+            player.level.increase_power()
+        elif key == tcod.event.KeySym.N3:
+            player.level.increase_defense()
         else:
             self.engine.message_log.add_message("Invalid entry.", color.invalid)
 
